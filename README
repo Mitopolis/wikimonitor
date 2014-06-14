@@ -12,3 +12,8 @@ The file "conf/logininfo" should look like this:
 <?php
 $wikiusername = 'WikiMonitor'; //replace with the username you are using
 $wikipassword = 'password'; //replace with your password
+
+The following configuration files can be edited as necessary:
+conf/nobotsoverride.txt - WM will ignore the {{NoBots}} template for any user on this list
+conf/ignore.txt - WM will unconditially ignore notifications related to any page on the list
+Place one entry per line in each file, and avoid unnecessary whitespace at the beginning or the end. The list is also case-sensitive.
