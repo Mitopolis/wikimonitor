@@ -57,7 +57,7 @@ function notify_user($user, $type, $info) {
 		case 'uncat':
 			$message = str_replace('($page)', $info['page'], NOCAT_MESSAGE_BODY);
 			echo date($dateformat, time()) . ' Uncategorized page: ' . $info['page'] . ' by ' . $user . ', notifying...' . "\n";
-			$summary = 'No category on new page: ' . $info['revid'] . ' of page [[' . $info['page'] . ']]';
+			$summary = 'No category on new page: [[' . $info['page'] . ']]';
 			$subject = NOCAT_MESSAGE_SUBJECT;
 			$datasignature = 'uncat-' . $info['page'];
 			break;
@@ -133,7 +133,7 @@ function submit_edit($title, $contents, $summary, $minor = false) {
 	$return = curl_post('http://wiki.scratch.mit.edu/w/api.php', 'action=edit&title=' . rawurlencode($title) . '&summary=' . $summary . '&text=' . rawurlencode($contents) . '&format=xml&bot=true' . ($minor = true ? '&minor=true' : '') . '&token=' . rawurlencode($edittoken)); //submit the edit
 }
 
-define('anononly', 1); //uncomment to disable logging in
+//define('anononly', 1); //uncomment to disable logging in
 //log in
 $alreadyseen = array();
 $already_notified = array();
