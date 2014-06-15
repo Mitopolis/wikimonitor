@@ -10,6 +10,7 @@ function get_page_contents($title) {
 }
 
 function notify_user($user, $type, $info) {
+	global $wikiusername;
 	//function to notify user
 	//check if this is on the ignore list
 	$page_ignore_list = explode("\n", file_get_contents('conf/ignore.txt')); //check if the page is ignored
@@ -65,7 +66,7 @@ function notify_user($user, $type, $info) {
 	//check if user was already notified
 	$historyxml = new SimpleXMLElement(file_get_contents('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=revisions&titles=User_talk:'.  $user . '&rvlimit=50&rvprop=timestamp|user|comment&format=xml'));
 	foreach ($historyxml->query->pages->page->revisions->rev as $rev) {
-		if ((string)$rev->attributes()->user == 'WikiMonitor' && strstr((string)$rev->attributes()->comment, $datasignature)) {
+		if ((string)$rev->attributes()->user == $wikiusername && strstr((string)$rev->attributes()->comment, $datasignature)) {
 			echo 'Already notified, skipping...' . "\n";
 			return;
 		}
@@ -288,7 +289,7 @@ while (true) {
 				//check if it's the sandbox
 				if ((string)$val->attributes()->title == 'Scratch Wiki:Sandbox' && !$seensandbox) {
 					$seensandbox = true;
-					if ($val->attributes()->user != 'WikiMonitor') {
+					if ($val->attributes()->user != $wikiusername) {
 						$clear_sandbox_time = time() + (SANDBOX_TIMEOUT * 60);
 						echo 'Clearing sandbox at ' . date('d M Y H:i:s', $clear_sandbox_time) . "\n";
 					}
