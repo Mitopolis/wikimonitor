@@ -64,7 +64,7 @@ function notify_user($user, $type, $info) {
 			break;
 	}
 	//check if user was already notified
-	$historyxml = new SimpleXMLElement(file_get_contents('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=revisions&titles=User_talk:'.  $user . '&rvlimit=50&rvprop=timestamp|user|comment&format=xml'));
+	$historyxml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=revisions&titles=User_talk:'.  $user . '&rvlimit=50&rvprop=timestamp|user|comment&format=xml'));
 	foreach ($historyxml->query->pages->page->revisions->rev as $rev) {
 		if ((string)$rev->attributes()->user == $wikiusername && strstr((string)$rev->attributes()->comment, $datasignature)) {
 			echo 'Already notified, skipping...' . "\n";
