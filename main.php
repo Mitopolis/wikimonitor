@@ -170,23 +170,28 @@ function loadconfig() { //load online configuration
 	define('SANDBOX_TIMEOUT', $matches[1]);
 	preg_match('%<code><pre><nowiki>(.*?)</nowiki></pre></code>%ms', get_page_contents('User:WikiMonitor/Configuration/DefaultSandbox'), $matches); //default sandbox text
 	define('DEFAULT_SANDBOX_TEXT', $matches[1]);
+	echo 'Loaded config: default sandbox text' . "\n";
 	
 	preg_match('%<code><nowiki>\{Subj:(.*?)\}.*?\{Msg:(.*?)\}</nowiki></code>%ms', get_page_contents('User:WikiMonitor/Configuration/UnsignedMessage'), $matches); //unsigned post message
 	define('UNSIGNED_MESSAGE_SUBJECT', $matches[1]);
 	define('UNSIGNED_MESSAGE_BODY', $matches[2]);
+	echo 'Loaded config: unsigned messages' . "\n";
 	
 	preg_match('%<code><nowiki>\{Subj:(.*?)\}.*?\{Msg:(.*?)\}</nowiki></code>%msi', get_page_contents('User:WikiMonitor/Configuration/NoCategoryMessage'), $matches); //no category message
 	define('NOCAT_MESSAGE_SUBJECT', $matches[1]);
 	define('NOCAT_MESSAGE_BODY', $matches[2]);
+	echo 'Loaded config: no category messages' . "\n";
 	
 	preg_match('%<code><nowiki>\{Subj:(.*?)\}.*?\{Msg:(.*?)\}</nowiki></code>%ms', get_page_contents('User:WikiMonitor/Configuration/RapidEditMessage'), $matches); //rapid editing message
 	define('RAPID_MESSAGE_SUBJECT', $matches[1]);
 	define('RAPID_MESSAGE_BODY', $matches[2]);
+	echo 'Loaded config: quick editing messages' . "\n";
 	
 	preg_match('%<code><nowiki>\{(.*?)\}</nowiki></code>%', get_page_contents('User:WikiMonitor/Configuration/TooManyEdits'), $matches); //too many edits
 	$parts = explode(',', $matches[1]);
 	define('TOO_MANY_EDITS_COUNT', $parts[0]);
 	define('TOO_MANY_EDITS_TIME', $parts[1]);
+	echo 'Loaded config: definition of too many edits' . "\n";
 }
 
 loadconfig();
