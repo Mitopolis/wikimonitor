@@ -1,8 +1,9 @@
 <?php
+define('WIKI_API_URL', 'http://wiki.scratch.mit.edu/w/api.php');
 function get_page_contents($title) {
 	$data = '';
 	while ($data == '') {
-		$data = curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&titles=' . rawurlencode($title) . '&prop=revisions&rvprop=content&format=xml&salt=' . md5(time()));
+		$data = curl_get(WIKI_API_URL . '?action=query&titles=' . rawurlencode($title) . '&prop=revisions&rvprop=content&format=xml&salt=' . md5(time()));
 	}
 	$page_xml = @new SimpleXMLElement($data);
 	$contents = (string) ($page_xml->query->pages->page->revisions->rev);
@@ -64,7 +65,8 @@ function notify_user($user, $type, $info) {
 			break;
 	}
 	//check if user was already notified
-	$historyxml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=revisions&titles=User_talk:'.  $user . '&rvlimit=50&rvprop=timestamp|user|comment&format=xml'));
+	$data = curl_get(WIKI_API_URL . '?action=query&prop=revisions&titles=User_talk:'.  rawurlencode($user) . '&rvlimit=50&rvprop=timestamp|user|comment&format=xml');
+	$historyxml = new SimpleXMLElement($data);
 	foreach ($historyxml->query->pages->page->revisions->rev as $rev) {
 		if ((string)$rev->attributes()->user == $wikiusername && strstr((string)$rev->attributes()->comment, $datasignature)) {
 			echo 'Already notified, skipping...' . "\n";
@@ -78,10 +80,10 @@ function notify_user($user, $type, $info) {
 	$message .= '~~~~';
 	
 	//submit the edit
-	$tokenxml = new SimpleXMLElement(curl_post('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=info|revisions&intoken=edit&titles=User_talk:' . $user . '&format=xml', '', true)); //get token
+	$tokenxml = new SimpleXMLElement(curl_post(WIKI_API_URL . '?action=query&prop=info|revisions&intoken=edit&titles=User_talk:' . rawurlencode($user) . '&format=xml', '', true)); //get token
 	$edittoken = (string)$tokenxml->query->pages->page->attributes()->edittoken;
 	
-	$return = curl_post('http://wiki.scratch.mit.edu/w/api.php', 'action=edit&title=User_talk:' . $user . '&section=new&sectiontitle=' . $subject . '&summary=' . rawurlencode($summary . ' (' . $datasignature . ')') . '&text=' . rawurlencode($message) . '&format=xml&bot=true&token=' . rawurlencode($edittoken)); //submit the edit
+	$return = curl_post(WIKI_API_URL . '', 'action=edit&title=User_talk:' . $user . '&section=new&sectiontitle=' . $subject . '&summary=' . rawurlencode($summary . ' (' . $datasignature . ')') . '&text=' . rawurlencode($message) . '&format=xml&bot=true&token=' . rawurlencode($edittoken)); //submit the edit
 }
 
 function curl_post($url, $postfields, $refuseblank = false) {
@@ -116,6 +118,10 @@ function curl_get($url, $refuseblank = false) {
 	curl_setopt ( $ch, CURLOPT_COOKIEFILE, getcwd () . '/cookies.txt' );
 	curl_setopt ( $ch, CURLOPT_COOKIEJAR, getcwd () . '/cookies.txt' );
 	curl_setopt ( $ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US; rv:1.9.2) Gecko/20100115 Firefox/3.6 (.NET CLR 3.5.30729)" );
+	if (defined('SERVER_LOGIN')) { //my test server requires a login
+		curl_setopt($ch, CURLOPT_USERPWD, SERVER_LOGIN);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+	}
 	$out = '';
 	if ($refuseblank) {
 		while ($out == '') {
@@ -129,9 +135,9 @@ function curl_get($url, $refuseblank = false) {
 }
 
 function submit_edit($title, $contents, $summary, $minor = false) {
-	$tokenxml = new SimpleXMLElement(curl_post('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=info|revisions&intoken=edit&titles=' . rawurlencode($title) . '&format=xml', '')); //get token
+	$tokenxml = new SimpleXMLElement(curl_post(WIKI_API_URL . '?action=query&prop=info|revisions&intoken=edit&titles=' . rawurlencode($title) . '&format=xml', '')); //get token
 	$edittoken = (string)$tokenxml->query->pages->page->attributes()->edittoken;
-	$return = curl_post('http://wiki.scratch.mit.edu/w/api.php', 'action=edit&title=' . rawurlencode($title) . '&summary=' . $summary . '&text=' . rawurlencode($contents) . '&format=xml&bot=true' . ($minor = true ? '&minor=true' : '') . '&token=' . rawurlencode($edittoken)); //submit the edit
+	$return = curl_post(WIKI_API_URL . '', 'action=edit&title=' . rawurlencode($title) . '&summary=' . $summary . '&text=' . rawurlencode($contents) . '&format=xml&bot=true' . ($minor = true ? '&minor=true' : '') . '&token=' . rawurlencode($edittoken)); //submit the edit
 }
 
 //define('anononly', 1); //uncomment to disable logging in
@@ -139,19 +145,26 @@ function submit_edit($title, $contents, $summary, $minor = false) {
 $alreadyseen = array();
 $already_notified = array();
 $logincount = 0;
+include 'conf/logininfo.php';
 
 function loadconfig() { //load online configuration
 	global $category_templates;
+	echo 'Loading config - this could take a while.' . "\n";
+		
 	preg_match('%<code><nowiki>\{(.*?)\}</nowiki></code>%', get_page_contents('User:WikiMonitor/Configuration/CategoryTemplates'), $matches); //templates that contain a category
 	$category_templates = explode(',', $matches[1]);
 	foreach ($category_templates as &$val) {
 		$val = '{{' . $val;
 	}
+	echo 'Loaded config: category templates' . "\n";
+	
 	preg_match('%<code><nowiki>\{(.*?)\}</nowiki></code>%ms', get_page_contents('User:WikiMonitor/Configuration/MessagePrefix'), $matches); //prefix to add to messages
 	define('MESSAGE_PREFIX', $matches[1]);
+	echo 'Loaded config: message prefix' . "\n";
 	
 	preg_match('%<code><nowiki>\{(.*?)\}</nowiki></code>%ms', get_page_contents('User:WikiMonitor/Configuration/MessageSuffix'), $matches); //suffix to add to messages
 	define('MESSAGE_SUFFIX', $matches[1]);
+	echo 'Loaded config: message suffix' . "\n";
 	
 	preg_match('%<code><nowiki>\{(.*?)\}</nowiki></code>%', get_page_contents('User:WikiMonitor/Configuration/SandboxTimeout'), $matches); //time to wait before clearing sandbox
 	define('SANDBOX_TIMEOUT', $matches[1]);
@@ -182,12 +195,11 @@ $clear_sandbox_time = 0; //start out with no clearing sandbox
 while (true) {
 	if (!defined('anononly')) {
 		//log in
-		include 'conf/logininfo.php';
-		$out = curl_post('http://wiki.scratch.mit.edu/w/api.php', 'action=login&lgname='.  $wikiusername . '&lgpassword=' . $wikipassword . '&format=xml', true);
+		$out = curl_post(WIKI_API_URL . '', 'action=login&lgname='.  $wikiusername . '&lgpassword=' . $wikipassword . '&format=xml', true);
 		$login_xml = new SimpleXMLElement($out);
 		$token = (string)$login_xml->login->attributes()->token;
 		
-		$login_xml = new SimpleXMLElement(curl_post('http://wiki.scratch.mit.edu/w/api.php',  'action=login&lgname=' . $wikiusername . '&lgpassword='.  $wikipassword . '&lgtoken=' . $token . '&format=xml'));
+		$login_xml = new SimpleXMLElement(curl_post(WIKI_API_URL . '',  'action=login&lgname=' . $wikiusername . '&lgpassword='.  $wikipassword . '&lgtoken=' . $token . '&format=xml'));
 		if ((string)$login_xml->login->attributes()->result != 'Success') {
 			echo 'Login failed!'. "\n";
 			switch ((string)$login_xml->login->attributes()->result) {
@@ -212,7 +224,7 @@ while (true) {
 			echo 'This bot has been disabled by ' . $matches[1] . "\n"; die;
 		}	
 			
-		$recentchangesfullxml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&list=recentchanges&rcprop=title|ids|sizes|flags|user|timestamp&rclimit=150&format=xml&salt=' . time(), true)); //get recent changes list
+		$recentchangesfullxml = new SimpleXMLElement(curl_get(WIKI_API_URL . '?action=query&list=recentchanges&rcprop=title|ids|sizes|flags|user|timestamp&rclimit=150&format=xml&salt=' . time(), true)); //get recent changes list
 		$recentchangesxml = $recentchangesfullxml->query->recentchanges->rc;
 		$editcounts = array();
 		$lastedits = array();
@@ -302,17 +314,17 @@ while (true) {
 						//it's a talk page! did the user sign their post?
 						$page_contents = get_page_contents($title); //make sure that other people have signed posts on it
 						if (stristr($page_contents, '<scratchsig>')) {
-							$rev_xml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&prop=revisions&titles=' . rawurlencode($title) . '&rvlimit=1&rvprop=timestamp|user|comment&rvstartid=' . $id . '&rvdiffto=prev&rvlimit=1&format=xml', true));
+							$rev_xml = new SimpleXMLElement(curl_get(WIKI_API_URL . '?action=query&prop=revisions&titles=' . rawurlencode($title) . '&rvlimit=1&rvprop=timestamp|user|comment&rvstartid=' . $id . '&rvdiffto=prev&rvlimit=1&format=xml', true));
 							//print_r($rev_xml->query); die;
 							$diff = (string)$rev_xml->query->pages->page->revisions->rev->diff;
 							$comment = (string)$rev_xml->query->pages->page->revisions->rev->attributes()->comment;
 							preg_match_all('%<td class=\'diff-addedline\'><div>(.*?)</div></td>%', $diff, $matches);
 							$ok = true;
 							foreach ($matches[1] as $diffline) {
-								if (stristr($diffline, '<ins class="diffchange">:') || strstr($comment, 'new section')) {
+								if (stristr($diffline, '<ins class="diffchange">:') || stristr($diffline, '<ins class="diffchange">{{outdent|') || strstr($comment, 'new section')) {
 									$ok = false;
 								}
-								if (stristr($diffline, '(UTC)')) {
+								if (stristr($diffline, '(UTC)') || stristr($diffline, '(GMT)') || stristr($diffline, '<scratchsig>') || stristr($diffline, '/sig')) {
 									$ok = true;
 									break;
 								}
@@ -325,7 +337,7 @@ while (true) {
 									echo 'Sleeping ' . (180 - (time() - $origedittime)) . ' seconds...' . "\n";
 									sleep(180 - (time() - $origedittime));
 								}
-								$recentchangesfullxml2 = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&list=recentchanges&rcprop=title|ids|sizes|flags|user|timestamp&rclimit=150&format=xml&salt=' . time(), true)); //get recent changes list
+								$recentchangesfullxml2 = new SimpleXMLElement(curl_get(WIKI_API_URL . '?action=query&list=recentchanges&rcprop=title|ids|sizes|flags|user|timestamp&rclimit=150&format=xml&salt=' . time(), true)); //get recent changes list
 								$recentchangesxml2 = $recentchangesfullxml2->query->recentchanges->rc;
 								foreach ($recentchangesxml2 as $change) {
 									$edittime = strtotime((string)$change->attributes()->timestamp);
@@ -381,9 +393,9 @@ while (true) {
 		}
 		
 		//check for uncategorized new files
-		$uploadlogxml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&list=logevents&letype=upload&lelimit=20&format=xml', true)); //check upload log
-		$deletelogxml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&list=logevents&letype=delete&lelimit=500&format=xml', true)); //let's also get the delete log
-		$movelogxml = new SimpleXMLElement(curl_get('http://wiki.scratch.mit.edu/w/api.php?action=query&list=logevents&letype=move&lelimit=50&format=xml', true)); //don't forget the move log
+		$uploadlogxml = new SimpleXMLElement(curl_get(WIKI_API_URL . '?action=query&list=logevents&letype=upload&lelimit=20&format=xml', true)); //check upload log
+		$deletelogxml = new SimpleXMLElement(curl_get(WIKI_API_URL . '?action=query&list=logevents&letype=delete&lelimit=500&format=xml', true)); //let's also get the delete log
+		$movelogxml = new SimpleXMLElement(curl_get(WIKI_API_URL . '?action=query&list=logevents&letype=move&lelimit=50&format=xml', true)); //don't forget the move log
 		foreach ($uploadlogxml->query->logevents->item as $item) {
 			$id = (string)$item->attributes()->logid;
 			if (!in_array($id, $alreadyseen)) {
@@ -395,7 +407,7 @@ while (true) {
 						sleep(180 - (time() - $time));
 					}
 					$contents = get_page_contents((string)$item->attributes()->title) . "\n";
-					if (!strstr($contents, '[[Category:')) {
+					if (!stristr($contents, '[[Category:')) {
 						//uncategorized
 						$notify = true;
 						//check for category templates
