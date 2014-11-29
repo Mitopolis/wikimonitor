@@ -10,7 +10,7 @@ To operate WikiMonitor, follow the following steps:
 **You can also use tmux or screens to make it run in the background
 *Restart the script every 7 days or so
 
-The file "conf/logininfo" should look like this:
+The file "conf/logininfo.php" should look like this:
 <?php
 $wikiusername = 'WikiMonitor'; //replace with the username you are using
 $wikipassword = 'password'; //replace with your password
