@@ -1,0 +1,4 @@
+#/bin/bash
+#UNIX bash shell script to install wmd, the WikiMonitor Daemon
+printf '#!/bin/sh\necho Starting...\nuntil [ $? != 0 ]; do\nphp main.php\ndone' > $PWD/wmd
+echo $PWD >> ~/.bashrc
