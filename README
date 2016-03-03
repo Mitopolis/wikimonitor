@@ -4,7 +4,7 @@ To operate WikiMonitor, follow the following steps:
 **Is dedicated (nothing else is in it)
 **Has write permissions (PHP needs to be able to read/write the file cookies.txt)
 *Create the file "conf/logininfo.php" (see below)
-*Run the file "main.php" with the command-line code "php -f main.php" (add your PHP directory to the PATH if the command isn't recognized)
+*Run the file "main.php" with the command-line code "chmod +x wmdinst; ./wmdinst; bash" (add your PHP directory to the PATH if the command isn't recognized) (This configures and starts WikiMonitor)
 *As soon as it says "Login success!", make sure the file "cookies.txt" exists (if it doesn't check the directory permissions)
 *Do not close the command shell window (doing so will stop executing the script)
 **You can also use tmux or screens to make it run in the background
