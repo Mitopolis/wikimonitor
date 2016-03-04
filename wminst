@@ -1,0 +1,22 @@
+
+#/bin/bash
+#UNIX bash shell script to install wmd, the WikiMonitor Daemon and configure WikiMonitor
+#Daemon:
+echo '#!/bin/sh' > ~/wmd
+echo 'echo Starting...' >> ~/wmd
+echo 'until [ $? != 0 ]; do' >> ~/wmd
+echo 'php -f main.php' >> ~/wmd
+echo 'done' > ~/wmd
+#Config:
+chmod +x ~/wmd
+echo $PWD/wmd >> ~/.bashrc
+#Config
+read -p "Username:" user
+stty -echo
+read -p "Password:" password
+stty echo
+mkdir conf
+echo "<?php" > ~/conf/logininfo.php
+echo \$wikiusername \= \'$user\;' >> ~/conf/logininfo.php
+echo \$wikipassword= \'$password\';" >> ~/conf/logininfo.php
+echo Installed! Please log out and log back in to run WikiMonitor.
